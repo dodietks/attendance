@@ -199,7 +199,7 @@ class _HomeState extends State<Home> {
                     keyboardType: TextInputType.name,
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.allow(
-                          RegExp(r'[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ]'))
+                          RegExp(r'[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ\s]'))
                     ],
                   ),
                 ),
