@@ -215,7 +215,7 @@ class _HomeState extends State<Home> {
                       ),
                       keyboardType: TextInputType.number,
                       inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9-]'))
                       ],
                     ),
                   ),
@@ -325,7 +325,7 @@ class _HomeState extends State<Home> {
               ],
             ),
             action: SnackBarAction(
-                textColor: Colors.amber,
+                textColor: Colors.white,
                 label: "Desfazer",
                 onPressed: () {
                   setState(() {
