@@ -1,8 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:filesystem_picker/filesystem_picker.dart';
+import 'package:share/share.dart';
 
 void main() {
   runApp(
@@ -68,6 +75,7 @@ class _HomeState extends State<Home> {
       int attendanceValue = _attendanceController.text.isNotEmpty
           ? int.parse(_attendanceController.text)
           : 1;
+      _attendanceController.text = "";
 
       for (var element in _studdentList) {
         _attendancePlus(element, attendanceValue);
@@ -104,13 +112,75 @@ class _HomeState extends State<Home> {
     }
   }
 
+  _getCsv() async {
+    //store file in documents folder
+    if (await Permission.storage.request().isGranted) {
+      List<List<dynamic>> rows = [];
+      for (int i = 0; i < _studdentList.length; i++) {
+        List<dynamic> row = [];
+        row.add(_studdentList[i]["name"]);
+        row.add(_studdentList[i]["attendance"]);
+        rows.add(row);
+      }
+      String now = DateTime.now().toString();
+
+      String dir = (await getExternalStorageDirectory())!.path +
+          "/Lista de presença " +
+          now +
+          ".csv";
+      File file = File(dir);
+
+      String csv = const ListToCsvConverter().convert(rows);
+      file.writeAsString(csv);
+    } else {
+      Map<Permission, PermissionStatus> status = await [
+        Permission.storage,
+      ].request();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Lista de presença"),
+        title: const Text("Crescendo no esporte",
+            style: TextStyle(
+              fontSize: 24,
+            )),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.get_app),
+            tooltip: 'Salvar em .CSV',
+            onPressed: () {
+              _getCsv();
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Arquivo salvo'),
+                backgroundColor: Colors.amber,
+              ));
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.open_in_new),
+            tooltip: 'Arquivo',
+            onPressed: () async {
+              Directory? rootPath = await getExternalStorageDirectory();
+              String? path = await FilesystemPicker.open(
+                title: 'Arquivos',
+                pickText: 'selecionado',
+                context: context,
+                rootDirectory: rootPath!,
+                fsType: FilesystemType.file,
+                folderIconColor: Colors.amber,
+                allowedExtensions: ['.csv'],
+                fileTileSelectMode: FileTileSelectMode.wholeTile,
+              );
+              Share.shareFiles([(path!)], text: 'Arquivo: $path');
+            },
+          ),
+        ],
         backgroundColor: Colors.amber,
-        centerTitle: true,
+        centerTitle: false,
+        toolbarHeight: 60,
       ),
       body: Column(
         children: <Widget>[
@@ -126,6 +196,11 @@ class _HomeState extends State<Home> {
                       labelText: "Nome",
                       labelStyle: TextStyle(color: Colors.amber),
                     ),
+                    keyboardType: TextInputType.name,
+                    inputFormatters: <TextInputFormatter>[
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ]'))
+                    ],
                   ),
                 ),
                 Expanded(
@@ -138,6 +213,10 @@ class _HomeState extends State<Home> {
                         labelText: "Presenças",
                         labelStyle: TextStyle(color: Colors.amber),
                       ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: <TextInputFormatter>[
+                        FilteringTextInputFormatter.digitsOnly
+                      ],
                     ),
                   ),
                 ),
@@ -166,7 +245,7 @@ class _HomeState extends State<Home> {
                           backgroundColor:
                               MaterialStateProperty.all<Color>(Colors.amber)),
                       onPressed: _addAttendance,
-                      child: const Icon(Icons.done),
+                      child: const Icon(Icons.fact_check),
                     ),
                   ),
                 )
@@ -255,6 +334,7 @@ class _HomeState extends State<Home> {
                   });
                 }),
             duration: const Duration(seconds: 3),
+            backgroundColor: Colors.amber,
           );
           ScaffoldMessenger.of(context).removeCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(snack);
@@ -271,6 +351,8 @@ class _HomeState extends State<Home> {
   Future<File> _saveData() async {
     String data = json.encode(_studdentList);
     final file = await _getFile();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+
     return file.writeAsString(data);
   }
 
