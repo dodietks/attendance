@@ -1,4 +1,4 @@
-package com.example.attendance
+package com.crescendonoesporte
 
 import io.flutter.embedding.android.FlutterActivity
 

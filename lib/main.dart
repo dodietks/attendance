@@ -42,6 +42,7 @@ class _HomeState extends State<Home> {
     _readData().then((data) {
       setState(() {
         _studdentList = json.decode(data!);
+        print(_studdentList);
       });
     });
   }
