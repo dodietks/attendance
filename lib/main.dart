@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 import 'package:csv/csv.dart';
@@ -32,9 +33,6 @@ class _HomeState extends State<Home> {
 
   List _studdentList = [];
 
-  late Map<String, dynamic> _lastRemoved;
-  late int _lastRemovedPosition;
-
   @override
   void initState() {
     super.initState();
@@ -42,7 +40,6 @@ class _HomeState extends State<Home> {
     _readData().then((data) {
       setState(() {
         _studdentList = json.decode(data!);
-        print(_studdentList);
       });
     });
   }
@@ -58,6 +55,7 @@ class _HomeState extends State<Home> {
         _studdentController.text = "";
         _attendanceController.text = "";
         newStuddent["isPresent"] = false;
+        newStuddent["active"] = true;
         _studdentList.add(newStuddent);
         _saveData();
       });
@@ -103,6 +101,23 @@ class _HomeState extends State<Home> {
     });
   }
 
+  Future<void> _shortUnactive() async {
+    await Future.delayed(const Duration(seconds: 1));
+
+    setState(() {
+      _studdentList.sort((a, b) {
+        if (a["active"] && !b["active"]) {
+          return -1;
+        } else if (!a["active"] && b["active"]) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+      _saveData();
+    });
+  }
+
   void _attendancePlus(element, int attendanceValue) {
     if (element["isPresent"]) {
       int actualAttendance = int.parse(element["attendance"]);
@@ -121,6 +136,7 @@ class _HomeState extends State<Home> {
         List<dynamic> row = [];
         row.add(_studdentList[i]["name"]);
         row.add(_studdentList[i]["attendance"]);
+        row.add(_studdentList[i]["active"] ? "Ativo" : "Desativado");
         rows.add(row);
       }
       String now = DateTime.now().toString();
@@ -142,128 +158,159 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Crescendo no esporte",
-            style: TextStyle(
-              fontSize: 24,
-            )),
-        actions: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.get_app),
-            tooltip: 'Salvar em .CSV',
-            onPressed: () {
-              _getCsv();
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Arquivo salvo'),
-                backgroundColor: Colors.amber,
-              ));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.open_in_new),
-            tooltip: 'Arquivo',
-            onPressed: () async {
-              Directory? rootPath = await getExternalStorageDirectory();
-              String? path = await FilesystemPicker.open(
-                title: 'Arquivos',
-                pickText: 'selecionado',
-                context: context,
-                rootDirectory: rootPath!,
-                fsType: FilesystemType.file,
-                folderIconColor: Colors.amber,
-                allowedExtensions: ['.csv'],
-                fileTileSelectMode: FileTileSelectMode.wholeTile,
-              );
-              Share.shareFiles([(path!)], text: 'Arquivo: $path');
-            },
-          ),
-        ],
-        backgroundColor: Colors.amber,
-        centerTitle: false,
-        toolbarHeight: 60,
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: Colors.amber,
+        primarySwatch: Colors.amber,
+        appBarTheme: const AppBarTheme(
+          titleTextStyle: TextStyle(color: Colors.white),
+          backgroundColor: Colors.amber,
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+        scaffoldBackgroundColor: Colors.blueGrey[50],
       ),
-      body: Column(
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.fromLTRB(17.0, 1.0, 7.0, 1.0),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _studdentController,
-                    decoration: const InputDecoration(
-                      labelText: "Nome",
-                      labelStyle: TextStyle(color: Colors.amber),
-                    ),
-                    keyboardType: TextInputType.name,
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ\s]'))
-                    ],
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(17.0, 0, 0, 0),
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text("Crescendo no esporte",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              )),
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.get_app),
+              tooltip: 'Salvar em .CSV',
+              onPressed: () {
+                _getCsv();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Arquivo salvo'),
+                  backgroundColor: Colors.amber,
+                ));
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.open_in_new),
+              tooltip: 'Arquivo',
+              onPressed: () async {
+                Directory? rootPath = await getExternalStorageDirectory();
+                String? path = await FilesystemPicker.open(
+                  title: 'Arquivos',
+                  pickText: 'selecionado',
+                  rootName: 'Selecione para compartilhar',
+                  context: context,
+                  rootDirectory: rootPath!,
+                  fsType: FilesystemType.file,
+                  folderIconColor: Colors.amber,
+                  allowedExtensions: ['.csv'],
+                  fileTileSelectMode: FileTileSelectMode.wholeTile,
+                );
+                Share.shareFiles([(path!)], text: 'Arquivo: $path');
+              },
+            ),
+          ],
+          backgroundColor: Colors.amber,
+          shadowColor: Colors.amber,
+          elevation: 10,
+          centerTitle: false,
+          toolbarHeight: 60,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(35),
+                  bottomRight: Radius.circular(35))),
+        ),
+        body: Column(
+          children: <Widget>[
+            Container(
+              padding: const EdgeInsets.fromLTRB(10.0, 1.0, 10.0, 1.0),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    flex: 2,
                     child: TextField(
-                      controller: _attendanceController,
+                      controller: _studdentController,
                       decoration: const InputDecoration(
-                        labelText: "Presenças",
+                        labelText: "Nome",
                         labelStyle: TextStyle(color: Colors.amber),
                       ),
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.name,
                       inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9-]'))
+                        FilteringTextInputFormatter.allow(RegExp(
+                            r'[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ\s]'))
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(17.0, 1.0, 7.0, 1.0),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: ElevatedButton(
-                    style: ButtonStyle(
-                        backgroundColor:
-                            MaterialStateProperty.all<Color>(Colors.amber)),
-                    onPressed: _addStuddent,
-                    child: const Icon(Icons.person_add_alt_1),
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10.0, 0, 0, 5.0),
-                    child: ElevatedButton(
-                      style: ButtonStyle(
-                          backgroundColor:
-                              MaterialStateProperty.all<Color>(Colors.amber)),
-                      onPressed: _addAttendance,
-                      child: const Icon(Icons.fact_check),
+                  Expanded(
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10.0, 0, 0, 0),
+                      child: TextField(
+                        controller: _attendanceController,
+                        decoration: const InputDecoration(
+                          labelText: "Presenças",
+                          labelStyle: TextStyle(color: Colors.amber),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9-]'))
+                        ],
+                      ),
                     ),
                   ),
-                )
-              ],
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView.builder(
-                padding: const EdgeInsets.only(top: 10.0),
-                itemCount: _studdentList.length,
-                itemBuilder: buildItem,
+                ],
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.fromLTRB(10.0, 0, 10.0, 0),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(0.0),
+                      child: ElevatedButton(
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all<Color>(Colors.amber)),
+                        onPressed: _addStuddent,
+                        child: const Icon(
+                          Icons.person_add_alt_1,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10.0, 0, 0, 0),
+                      child: ElevatedButton(
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all<Color>(Colors.amber)),
+                        onPressed: _addAttendance,
+                        child: const Icon(
+                          Icons.fact_check,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  itemCount: _studdentList.length,
+                  itemBuilder: buildItem,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -273,25 +320,59 @@ class _HomeState extends State<Home> {
       key: Key(DateTime.now().microsecondsSinceEpoch.toString()),
       background: Container(
         color: Colors.red,
-        child: const Align(
-          alignment: Alignment(-0.9, 0.0),
-          child: Icon(
-            Icons.person_remove_alt_1,
-            color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.person_remove_alt_1,
+                color: Colors.white,
+              ),
+              Text(
+                ' Desativar: ${_studdentList[index]["name"]}.',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ],
           ),
         ),
       ),
-      direction: DismissDirection.startToEnd,
+      secondaryBackground: Container(
+        color: Colors.green,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Icon(
+                Icons.person_add_alt_1,
+                color: Colors.white,
+              ),
+              Text(
+                ' Ativar: ${_studdentList[index]["name"]}.',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+      direction: DismissDirection.horizontal,
       child: CheckboxListTile(
         activeColor: Colors.amber,
         title: Text(_studdentList[index]["name"]),
-        subtitle: Text(_studdentList[index]["attendance"]),
+        subtitle: Text("Presenças: ${_studdentList[index]["attendance"]}"),
         value: _studdentList[index]["isPresent"],
         secondary: CircleAvatar(
-          backgroundColor:
-              _studdentList[index]["isPresent"] ? Colors.green : Colors.amber,
+          backgroundColor: _studdentList[index]["active"]
+              ? _studdentList[index]["isPresent"]
+                  ? Colors.green
+                  : Colors.amber
+              : Colors.red,
           child: Icon(
-            _studdentList[index]["isPresent"] ? Icons.task_alt : Icons.face,
+            _studdentList[index]["active"]
+                ? _studdentList[index]["isPresent"]
+                    ? Icons.how_to_reg
+                    : Icons.person
+                : Icons.delete,
             color: Colors.white,
             size: 35,
           ),
@@ -305,41 +386,77 @@ class _HomeState extends State<Home> {
         },
       ),
       onDismissed: (direction) {
-        setState(() {
-          _lastRemoved = Map.from(_studdentList[index]);
-          _lastRemovedPosition = index;
-          _studdentList.removeAt(index);
+        if (direction == DismissDirection.startToEnd) {
+          setState(() {
+            _studdentList[index]["active"] = false;
+            _saveData();
 
-          _saveData();
+            final snack = SnackBar(
+              content: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.person_remove_alt_1,
+                    color: Colors.white,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                        "Aluno: \"${_studdentList[index]["name"]}\" desativado!"),
+                  ),
+                ],
+              ),
+              action: SnackBarAction(
+                  textColor: Colors.white,
+                  label: "Reativar",
+                  onPressed: () {
+                    setState(() {
+                      _studdentList[index]["active"] = true;
+                      _saveData();
+                    });
+                  }),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.amber,
+            );
+            ScaffoldMessenger.of(context).removeCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(snack);
+          });
+        } else {
+          setState(() {
+            _studdentList[index]["active"] = true;
+            _saveData();
 
-          final snack = SnackBar(
-            content: Row(
-              children: <Widget>[
-                const Icon(
-                  Icons.person_remove_alt_1,
-                  color: Colors.white,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text("Aluno: \"${_lastRemoved["name"]}\" removido!"),
-                ),
-              ],
-            ),
-            action: SnackBarAction(
-                textColor: Colors.white,
-                label: "Desfazer",
-                onPressed: () {
-                  setState(() {
-                    _studdentList.insert(_lastRemovedPosition, _lastRemoved);
-                    _saveData();
-                  });
-                }),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.amber,
-          );
-          ScaffoldMessenger.of(context).removeCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(snack);
-        });
+            final snack = SnackBar(
+              content: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.person_add_alt_1,
+                    color: Colors.white,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                        "Aluno: \"${_studdentList[index]["name"]}\" reativado!"),
+                  ),
+                ],
+              ),
+              action: SnackBarAction(
+                  textColor: Colors.white,
+                  label: "Desativar",
+                  onPressed: () {
+                    setState(() {
+                      _studdentList[index]["active"] = false;
+                      _saveData();
+                    });
+                  }),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.amber,
+            );
+            ScaffoldMessenger.of(context).removeCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(snack);
+          });
+        }
+
+        _shortUnactive();
       },
     );
   }
