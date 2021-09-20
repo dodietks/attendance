@@ -370,8 +370,8 @@ class _HomeState extends State<Home> {
           child: Icon(
             _studdentList[index]["active"]
                 ? _studdentList[index]["isPresent"]
-                    ? Icons.task_alt
-                    : Icons.face
+                    ? Icons.how_to_reg
+                    : Icons.person
                 : Icons.delete,
             color: Colors.white,
             size: 35,
