@@ -11,8 +11,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:filesystem_picker/filesystem_picker.dart';
 import 'package:share/share.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
   runApp(
     MaterialApp(
       home: Home(),
@@ -57,6 +62,8 @@ class _HomeState extends State<Home> {
         newStuddent["isPresent"] = false;
         newStuddent["active"] = true;
         _studdentList.add(newStuddent);
+        FirebaseFirestore.instance.collection('students').add(newStuddent);
+
         _saveData();
       });
     } else {

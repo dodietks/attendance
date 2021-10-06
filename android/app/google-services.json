@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "847194806418",
+    "project_id": "crescendo-no-esporte",
+    "storage_bucket": "crescendo-no-esporte.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847194806418:android:9a08522608fe1564036e4b",
+        "android_client_info": {
+          "package_name": "com.crescendonoesporte"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "847194806418-uhqhuh0r4cei3qbmsh51c4nrf171bcp5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLDTxMZ0-04iGFatXmYwsK6md0Qe5sDVk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "847194806418-uhqhuh0r4cei3qbmsh51c4nrf171bcp5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
